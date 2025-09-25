@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Redirecting… wait in this page!</title>
+  <title>Redirecting… wait here!</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
 </head>
 <body>
   Redirecting… please wait.
   <script>
-    (function(){
+    (function() {
       const params = new URLSearchParams(location.search);
       const placeId = params.get('placeId');
       const gameId = params.get('gameInstanceId');
@@ -18,77 +18,36 @@
         return;
       }
 
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
-
       const robloxUri = `roblox://experiences/start?placeId=${placeId}${gameId ? `&gameInstanceId=${gameId}` : ''}`;
       const webUrl = `https://www.roblox.com/games/start?placeId=${placeId}${gameId ? `&gameInstanceId=${gameId}` : ''}`;
-      const workerUrl = `https://braintopia-auto.pneed100.workers.dev/?placeID=${placeId}&gameInstanceId=${gameId || ''}`;
 
       let redirectAttempted = false;
-      let fallbackTriggered = false;
 
       function tryDeeplink() {
         if (redirectAttempted) return;
         redirectAttempted = true;
 
-        if (isIOS) {
-          window.location.href = robloxUri;
-        } else {
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = robloxUri;
-          document.body.appendChild(iframe);
-          setTimeout(() => document.body.removeChild(iframe), 300);
-        }
+        // Try opening Roblox app
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = robloxUri;
+        document.body.appendChild(iframe);
 
         setTimeout(() => {
-          if (!document.hidden && !fallbackTriggered) {
-            fallbackTriggered = true;
-            tryWorkerFallback();
-          }
-        }, 800);
-      }
+          document.body.removeChild(iframe);
+        }, 500);
 
-      function tryWorkerFallback() {
-        if (!gameId) {
-          goToWeb();
-          return;
-        }
-        const img = new Image();
-        img.onload = img.onerror = () => { window.location.href = workerUrl; };
-        setTimeout(() => { if (!fallbackTriggered) goToWeb(); }, 1500);
-        img.src = workerUrl;
-      }
-
-      function goToWeb() {
-        window.location.href = webUrl;
-      }
-
-      function initialize() {
-        tryDeeplink();
+        // Fallback to web after 3 seconds
         setTimeout(() => {
-          if (!document.hidden) {
-            window.location.href = webUrl;
-          }
-        }, 4000);
+          window.location.href = webUrl;
+        }, 3000);
       }
 
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initialize);
+        document.addEventListener('DOMContentLoaded', tryDeeplink);
       } else {
-        initialize();
+        tryDeeplink();
       }
-
-      window.addEventListener('focus', () => {
-        setTimeout(() => {
-          if (!fallbackTriggered && redirectAttempted) {
-            fallbackTriggered = true;
-            tryWorkerFallback();
-          }
-        }, 200);
-      });
-
     })();
   </script>
   <noscript>
